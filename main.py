@@ -8,26 +8,18 @@ import motor.motor_asyncio
 from bson import ObjectId
 from bson.errors import InvalidId
 
-# ---------------------------
-# Environment
-# ---------------------------
+# Environment Setup 
 load_dotenv()
 MONGO_URI = os.getenv("MONGO_URI")
 
-# ---------------------------
-# App
-# ---------------------------
+# Application
 app = FastAPI(title="Event Management API")
 
-# ---------------------------
 # Database
-# ---------------------------
 client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_URI)
 db = client.event_management_db
 
-# ---------------------------
 # Helpers
-# ---------------------------
 def obj_to_str(doc):
     doc["_id"] = str(doc["_id"])
     return doc
@@ -38,20 +30,17 @@ def validate_object_id(id: str):
     except InvalidId:
         raise HTTPException(status_code=400, detail="Invalid ID format")
 
-# ---------------------------
-# Root
-# ---------------------------
+
 @app.get("/")
 async def root():
     return {"message": "API is running!"}
 
-# ---------------------------
+
 # Models (Sanitised & Validated)
-# ---------------------------
 class Event(BaseModel):
     name: constr(strip_whitespace=True, min_length=1)
     description: constr(strip_whitespace=True, min_length=1)
-    date: str = Field(..., pattern=r"^\d{4}-\d{2}-\d{2}$")  # <-- Pydantic v2 uses `pattern`
+    date: str = Field(..., pattern=r"^\d{4}-\d{2}-\d{2}$")  
     venue_id: str
     max_attendees: int = Field(..., gt=0)
 
@@ -71,9 +60,7 @@ class Booking(BaseModel):
     ticket_type: constr(strip_whitespace=True, min_length=1)
     quantity: int = Field(..., gt=0)
 
-# ---------------------------
-# EVENTS
-# ---------------------------
+# Events
 @app.post("/events")
 async def create_event(event: Event):
     result = await db.events.insert_one(event.model_dump())
@@ -108,9 +95,9 @@ async def delete_event(event_id: str):
         raise HTTPException(status_code=404, detail="Event not found")
     return {"message": "Event deleted"}
 
-# ---------------------------
-# ATTENDEES
-# ---------------------------
+
+# Attrndees
+# 
 @app.post("/attendees")
 async def create_attendee(attendee: Attendee):
     result = await db.attendees.insert_one(attendee.model_dump())
@@ -145,9 +132,8 @@ async def delete_attendee(attendee_id: str):
         raise HTTPException(status_code=404, detail="Attendee not found")
     return {"message": "Attendee deleted"}
 
-# ---------------------------
-# VENUES
-# ---------------------------
+
+# Venues
 @app.post("/venues")
 async def create_venue(venue: Venue):
     result = await db.venues.insert_one(venue.model_dump())
@@ -182,9 +168,7 @@ async def delete_venue(venue_id: str):
         raise HTTPException(status_code=404, detail="Venue not found")
     return {"message": "Venue deleted"}
 
-# ---------------------------
-# BOOKINGS
-# ---------------------------
+# Bookings
 @app.post("/bookings")
 async def create_booking(booking: Booking):
     result = await db.bookings.insert_one(booking.model_dump())
@@ -219,9 +203,8 @@ async def delete_booking(booking_id: str):
         raise HTTPException(status_code=404, detail="Booking not found")
     return {"message": "Booking deleted"}
 
-# ---------------------------
-# FILE UPLOADS
-# ---------------------------
+
+# File uploads
 @app.post("/upload_event_poster/{event_id}")
 async def upload_event_poster(event_id: str, file: UploadFile = File(...)):
     content = await file.read()
